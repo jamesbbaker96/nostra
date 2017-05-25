@@ -13,6 +13,7 @@ from nostra.forms.user import RegisterForm
 from nostra.utils import flash_errors, render_extensions
 from nostra.database import db
 
+
 blueprint = Blueprint('public', __name__, static_folder="../static")
 
 

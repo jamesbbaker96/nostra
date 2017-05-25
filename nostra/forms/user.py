@@ -4,6 +4,7 @@ from wtforms import TextField, PasswordField, StringField
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 
 from nostra.models.user import User
+import urllib, json
 
 
 class RegisterForm(Form):
@@ -34,6 +35,16 @@ class RegisterForm(Form):
 
 class EmailForm(Form):
     email = StringField('Email', validators=[DataRequired(), Email()])
+
+class CompanyForm(Form):
+    ticker = StringField('Company', validators=[DataRequired(), Length(min=1)])
+    def validate(self):
+        initial_validation = super(CompanyForm, self).validate()
+        if not initial_validation:
+            return False
+        if json.loads(urllib.urlopen("http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols="+self.ticker.data+"&conceptgroups=BalanceSheetConsolidated&appkey=anapqb65c25p9pr9twjapaj3").read()) == {u'Message': u'No data available per your call. '}:
+            self.ticker.errors.append('Not a valid company ticker.')
+        return True
 
 
 class PasswordForm(Form):

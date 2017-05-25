@@ -4,21 +4,56 @@ from flask import (Blueprint, request, render_template, flash, url_for, send_fro
 
 from flask_login import login_required, logout_user, current_user
 from nostra.utils import flash_errors, render_extensions
-from nostra.forms.user import PasswordForm, EmailForm, UsernameForm
+from nostra.forms.user import PasswordForm, EmailForm, UsernameForm, CompanyForm
 from nostra.extensions import mail
 from nostra.models.user import User
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer
+import urllib, json
 
 
 blueprint = Blueprint("user", __name__, url_prefix='/users',
                       static_folder="../static")
 
 
-@blueprint.route("/")
+@blueprint.route("/", methods=["GET", "POST"])
 @login_required
 def profile():
-    return render_extensions("users/profile.html")
+    form = CompanyForm()
+    if form.validate_on_submit():
+
+        urlIS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols='+str(form.ticker.data)+'&conceptgroups=IncomeStatementConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
+        urlBS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols='+str(form.ticker.data)+'&conceptgroups=BalanceSheetConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
+        urlCFS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols='+str(form.ticker.data)+'&conceptgroups=CashFlowStatementConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
+
+        #testurl = urlIS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols=MSFT&conceptgroups=IncomeStatementConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
+        response = urllib.urlopen(urlIS)
+        dataIS = json.loads(response.read())
+        response = urllib.urlopen(urlBS)
+        dataBS = json.loads(response.read())
+        response = urllib.urlopen(urlCFS)
+        dataCFS = json.loads(response.read())
+
+        print "DATA FOR INCOME STATEMENT"
+
+        print "DATA FOR BALANCE SHEET"
+        for x in range(0, 3):
+            for y in range(0, 30):
+                print dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+
+        print "DATA FOR INCOME STATEMENT"
+        for x in range(0, 3):
+            for y in range(0, 24):
+                print dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+
+        print "DATA FOR CASH FLOW STATEMENT"
+        for x in range(0, 3):
+            for y in range(0, 38):
+                print dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+
+    else:
+        flash_errors(form)
+    return render_extensions("users/profile.html", companyform=form)
 
 @blueprint.route('/reset', methods=["GET", "POST"])
 def reset():
