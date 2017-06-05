@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import (Blueprint, request, render_template, flash, url_for, send_from_directory, make_response,
+from flask import (Blueprint, request, render_template, flash, send_file, url_for, send_from_directory, make_response,
                    redirect, current_app)
 
 from flask_login import login_required, logout_user, current_user
@@ -10,6 +10,7 @@ from nostra.models.user import User
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer
 import urllib, json
+from openpyxl import Workbook, load_workbook
 
 
 blueprint = Blueprint("user", __name__, url_prefix='/users',
@@ -26,7 +27,7 @@ def profile():
         urlBS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols='+str(form.ticker.data)+'&conceptgroups=BalanceSheetConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
         urlCFS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols='+str(form.ticker.data)+'&conceptgroups=CashFlowStatementConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
 
-        #testurl = urlIS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols=MSFT&conceptgroups=IncomeStatementConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
+        #testurl = urlIS = 'http://edgaronline.api.mashery.com/v1/corefinancials?primarysymbols=MSFT&conceptgroups=BalanceSheetConsolidated&appkey=anapqb65c25p9pr9twjapaj3'
         response = urllib.urlopen(urlIS)
         dataIS = json.loads(response.read())
         response = urllib.urlopen(urlBS)
@@ -34,26 +35,66 @@ def profile():
         response = urllib.urlopen(urlCFS)
         dataCFS = json.loads(response.read())
 
+        #import Workbook
+        wb2 = load_workbook('nostra/OperatingModelTemplate.xlsx')
+        wb1=wb2
+        ws1=wb1.active
+
         print "DATA FOR INCOME STATEMENT"
+        for x in range(0, 4):
+            for y in range(0, 25):
+                for cell in ws1['B']:
+                    if str(cell.value) == 'I'+str(y):
+                        if x == 0:
+                            ws1['C' + str(cell.row)].value = dataIS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 1:
+                            ws1['D' + str(cell.row)].value = dataIS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 2:
+                            ws1['E' + str(cell.row)].value = dataIS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 3:
+                            ws1['F' + str(cell.row)].value = dataIS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
 
         print "DATA FOR BALANCE SHEET"
-        for x in range(0, 3):
-            for y in range(0, 30):
-                print dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+        for x in range(0, 4):
+            for y in range(0, 42):
 
-        print "DATA FOR INCOME STATEMENT"
-        for x in range(0, 3):
-            for y in range(0, 24):
-                print dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                for cell in ws1['B']:
+                    if str(cell.value) == 'B'+str(y):
+                        if x == 0:
+                            ws1['C' + str(cell.row)].value = dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x ==1:
+                            ws1['D' + str(cell.row)].value = dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 2:
+                            ws1['E' + str(cell.row)].value = dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 3:
+                            ws1['F' + str(cell.row)].value = dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+
 
         print "DATA FOR CASH FLOW STATEMENT"
-        for x in range(0, 3):
-            for y in range(0, 38):
-                print dataBS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+        for x in range(0, 4):
+            for y in range(0, 39):
+                for cell in ws1['B']:
+                    if str(cell.value) == 'C'+str(y):
+                        if x == 0:
+                            ws1['C' + str(cell.row)].value = dataCFS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 1:
+                            ws1['D' + str(cell.row)].value = dataCFS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 2:
+                            ws1['E' + str(cell.row)].value = dataCFS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
+                        elif x == 3:
+                            ws1['F' + str(cell.row)].value = dataCFS['result']['rowset'][x]['groups'][0]['rowset'][y]['value']
 
+        wb1.save('nostra/OperationalModelComplete.xlsx')
+        return redirect(url_for('user.download'))
     else:
         flash_errors(form)
+    print "is this happening"
     return render_extensions("users/profile.html", companyform=form)
+
+@blueprint.route('/download', methods=["GET"])
+@login_required
+def download():
+    return send_file('OperationalModelComplete.xlsx', as_attachment=True)
 
 @blueprint.route('/reset', methods=["GET", "POST"])
 def reset():
